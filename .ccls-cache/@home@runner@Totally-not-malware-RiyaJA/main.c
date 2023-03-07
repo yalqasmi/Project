@@ -6,6 +6,6 @@ int main(void) {
   return 0;
 }
 
-int malware() { 
-  return 911; 
+float malware() { 
+  return 9.11; 
 }
