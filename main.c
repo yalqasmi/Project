@@ -3,9 +3,10 @@
 int main(void) {
   printf("Goodbye Cruel World\n");
   printf("This is me\n");
+  printf("Does")
   return 0;
 }
 
-float malware() { 
-  return 9.11; 
+int malware() { 
+  return 911; 
 }
